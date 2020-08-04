@@ -1,4 +1,0 @@
-1,1,0.0012411252,JoesSimpleParty@0,(Offer  bid:Bid[Laptop: HP, Harddisk: 60 Gb, External Monitor: 23'' LCD])
-1,2,0.0015500157,ConcederNegotiationParty@1,(Offer  bid:Bid[Laptop: Macintosh, Harddisk: 60 Gb, External Monitor: 19'' LCD])
-2,1,0.0016665466999999999,JoesSimpleParty@0,(Accept  bid:Bid[Laptop: Macintosh, Harddisk: 60 Gb, External Monitor: 19'' LCD])
-agreement,Bid[Laptop: Macintosh, Harddisk: 60 Gb, External Monitor: 19'' LCD],0.851647611783233,0.9411329008630686
