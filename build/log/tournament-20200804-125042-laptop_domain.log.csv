@@ -1,0 +1,3 @@
+sep=;
+Run time (s);Round;Exception;deadline;Agreement;Discounted;#agreeing;min.util.;max.util.;Dist. to Pareto;Dist. to Nash;Social Welfare;Agent 1;Agent 2;Utility 1;Utility 2;Disc. Util. 1;Disc. Util. 2;Perceived. Util. 1;Perceived. Util. 2;Profile 1;Profile 2
+0.021;10;;60rounds;Yes;Yes;2;0.77004;0.77021;0.00000;0.12249;1.54024;SimpleParty@4;ConcederNegotiationParty@5;0.8740242984783759;0.873832627329898;0.7702056255873675;0.7700367215911313;0.7702056255873675;0.5931184603601256;laptop_buyer_utility.xml;laptop_seller_utility_u10.xml

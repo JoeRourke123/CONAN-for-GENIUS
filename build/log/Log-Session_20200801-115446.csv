@@ -1,0 +1,4 @@
+1,1,3.337352E-4,JoesSimpleParty@4,(Offer  bid:Bid[Laptop: Dell, Harddisk: 80 Gb, External Monitor: 23'' LCD])
+1,2,4.944292000000001E-4,JoesSimpleParty@5,(Offer  bid:Bid[Laptop: HP, Harddisk: 60 Gb, External Monitor: 19'' LCD])
+2,1,5.665407E-4,JoesSimpleParty@4,(Accept  bid:Bid[Laptop: HP, Harddisk: 60 Gb, External Monitor: 19'' LCD])
+agreement,Bid[Laptop: HP, Harddisk: 60 Gb, External Monitor: 19'' LCD],1.0,0.8151053951696905
