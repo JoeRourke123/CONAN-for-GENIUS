@@ -22,6 +22,7 @@ public class SimpleParty extends AbstractNegotiationParty {
         Action lastReceived = getLastReceivedAction();
         Bid lastBid;
 
+
         if(lastReceived instanceof Offer) {
             lastBid = ((Offer) lastReceived).getBid();
 
