@@ -1,6 +1,5 @@
 package uncertainparty;
 
-import uncertainparty.z3.Z3Solver;
 import genius.core.Bid;
 import genius.core.Domain;
 import genius.core.actions.Accept;
@@ -19,8 +18,9 @@ public class UncertainParty extends AbstractNegotiationParty {
         BidRanking bidRanking = userModel.getBidRanking();
         Domain domain = getDomain();
 
-        Z3Solver z3 = new Z3Solver();
-        return z3.estimatePreferences(bidRanking, domain);
+//        Z3Solver z3 = new Z3Solver();
+//        return z3.estimatePreferences(bidRanking, domain);
+        return null;
     }
 
     @Override
