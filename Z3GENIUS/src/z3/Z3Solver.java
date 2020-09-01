@@ -31,6 +31,7 @@ public class Z3Solver {
     public RationalFormulaManager nums;
     public BooleanFormulaManager bools;
     private SolverContext context;
+    private ProverEnvironment prover;
 
     public Z3Solver(
             List<Bid> bids,
@@ -54,14 +55,14 @@ public class Z3Solver {
         this.bidUtilities = new NumeralFormula.RationalFormula[bids.size()];
 
         this.discreteIssueValues = new NumeralFormula.RationalFormula[issues.size()][];
-        this.intIssueBounds = new NumeralFormula.RationalFormula[issues.size()][];
+        this.intIssueBounds = new NumeralFormula.RationalFormula[issues.size()][2];
         this.intIssueSlopes = new NumeralFormula.RationalFormula[issues.size()];
-        this.intIssueUtilities = new NumeralFormula.RationalFormula[issues.size()][];
+        this.intIssueUtilities = new NumeralFormula.RationalFormula[issues.size()][2];
 
         this.constraints = new ArrayList<>();
     }
 
-    public Model estimate(List<Bid> bids, List<Issue> issues) {
+    public List<Model.ValueAssignment> estimate(List<Bid> bids, List<Issue> issues) {
         addWeightConstraints();
 
         int index = 0;
@@ -79,20 +80,21 @@ public class Z3Solver {
             bidUtilities[i] = nums.makeVariable("bid-" + i);
             Bid bid = bids.get(i);
             bidUtilityConstraint(bidUtilities[i], bid);
+            isBetweenOneZero(bidUtilities[i], false, true);
         }
 
         bidOrderConstraint(bidUtilities);
 
-        try (ProverEnvironment prover = context.newProverEnvironment(SolverContext.ProverOptions.GENERATE_MODELS)) {
+        prover = context.newProverEnvironment(SolverContext.ProverOptions.GENERATE_MODELS);
+
+        try {
             for (BooleanFormula b : constraints) {
                 prover.addConstraint(b);
             }
 
             boolean isUnsat = prover.isUnsat();
             assert !isUnsat;
-            try (Model model = prover.getModel()) {
-                return model;
-            }
+           return prover.getModelAssignments();
         } catch (InterruptedException | SolverException e) {
             System.err.println("Model is not satisfiable");
             System.err.println(e);
@@ -109,11 +111,17 @@ public class Z3Solver {
             if(issue.getType() == ISSUETYPE.DISCRETE) {
                 int valueIndex = ((IssueDiscrete) issue).getValueIndex((ValueDiscrete) bid.getValue(issue));
                 NumeralFormula.RationalFormula bidValue = nums.divide(discreteIssueValues[i][valueIndex], discreteIssueValues[i][discreteIssueValues[i].length - 1]);
-                util = nums.add(util, bidValue);
+                util = nums.add(util, nums.multiply(
+                    bidValue,
+                    weightings[i]
+                ));
             } else if(issue.getType() == ISSUETYPE.INTEGER) {
                 NumeralFormula.RationalFormula bidValue = nums.makeNumber((((ValueInteger) bid.getValue(issue)).getValue()));
                 util = nums.add(util,
-                                nums.add(nums.multiply(intIssueSlopes[i], bidValue), intIssueUtilities[i][0]));
+                                nums.multiply(
+                                        nums.add(nums.multiply(intIssueSlopes[i], bidValue), intIssueUtilities[i][0]),
+                                        weightings[i]
+                                ));
             }
         }
 
@@ -126,7 +134,7 @@ public class Z3Solver {
     }
 
     private void bidOrderConstraint(NumeralFormula.RationalFormula[] bids) {
-        for(int i = 0; i < bids.length - 1; i--) {
+        for(int i = 0; i < bids.length - 1; i++) {
             constraints.add(
                 nums.lessOrEquals(bids[i], bids[i + 1])
             );
@@ -167,6 +175,7 @@ public class Z3Solver {
             constraints.add(nums.greaterThan(
                     discreteIssueValues[issueIndex][i], nums.makeNumber(0.0)
             ));
+//            isBetweenOneZero(discreteIssueValues[issueIndex][i], false, false);
         }
     }
 
@@ -177,7 +186,11 @@ public class Z3Solver {
         intIssueUtilities[issueIndex][0] = nums.makeVariable("issue-" + issueIndex + "-minutil");
         isBetweenOneZero(intIssueUtilities[issueIndex][0], true, false);
         intIssueUtilities[issueIndex][1] = nums.makeVariable("issue-" + issueIndex + "-maxutil");
-        isBetweenOneZero(intIssueUtilities[issueIndex][1], false, false);
+        isBetweenOneZero(intIssueUtilities[issueIndex][1], false, true);
+
+        constraints.add(
+            nums.lessThan(intIssueUtilities[issueIndex][0], intIssueUtilities[issueIndex][1])
+        );
 
         intIssueSlopes[issueIndex] = nums.makeVariable("issue-" + issueIndex + "-slope");
         constraints.add(nums.equal(
@@ -191,5 +204,6 @@ public class Z3Solver {
 
     public void close() {
         context.close();
+        prover.close();
     }
 }
