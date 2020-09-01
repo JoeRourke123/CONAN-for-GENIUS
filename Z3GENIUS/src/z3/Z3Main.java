@@ -1,16 +1,10 @@
 package z3;
 
-import com.sun.jdi.IntegerValue;
-import com.sun.tools.jdi.IntegerValueImpl;
 import genius.core.Bid;
 import genius.core.Domain;
-import genius.core.DomainImpl;
-import genius.core.analysis.pareto.IssueValue;
 import genius.core.issue.*;
-import genius.core.utility.AdditiveUtilitySpace;
 import genius.extended.Z3Domain;
 import org.sosy_lab.java_smt.api.Model;
-import org.sosy_lab.java_smt.api.NumeralFormula;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -28,7 +22,7 @@ public class Z3Main {
                 String[] returnData = {"ERR"};
 
                 try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-                    String[] data = in.readLine().split(";;");
+                    String[] data = in.readLine().split(";;;");
 
                     switch (data[0]) {
                         // For building a model given a domain and
@@ -110,11 +104,13 @@ public class Z3Main {
 
                     break;
                 default:
+                    System.err.println("The provided command is not valid: " + currentCommand);
                     throw new Z3ParseException();
             }
 
             // Should close the currentCommand
             if(!data[++i].equals("E" + currentCommand)) {
+                System.out.println("The closing command is not valid: " + data[i]);
                 throw new Z3ParseException();
             }
         }
