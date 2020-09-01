@@ -33,9 +33,10 @@ public class SocketParty extends AbstractNegotiationParty {
         String value = sendCommand("BLDMDL;;;" +
                 "CON;;;100;;;200;;;ECON;;;" +
                 "DIS;;;Value One;;;Value Two;;;Value Three;;;EDIS;;;" +
-                "BID;;;150;;;Value Two;;;EBID;;;" +
-                "BID;;;120;;;Value Three;;;EBID;;;" +
-                "BID;;;110;;;Value One;;;EBID");
+                "BID;;;110;;;Value Two;;;EBID;;;" +
+                "BID;;;130;;;Value Three;;;EBID;;;" +
+                "BID;;;170;;;Value One;;;EBID;;;" +
+                "BID;;;200;;;Value One;;;EBID");
         System.out.println(value);
     }
 
