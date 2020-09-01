@@ -44,10 +44,10 @@ public class Z3Main {
             System.err.println("There was an IOException...");
         } finally {
             try {
-                if(server != null) {
+                if (server != null) {
                     server.close();
                 }
-            } catch(IOException e) {
+            } catch (IOException e) {
                 System.err.println("An error occurred while attempting to close the server");
             }
         }
@@ -57,19 +57,22 @@ public class Z3Main {
         HashSet<String> possibleCommands = new HashSet<>(Arrays.asList("CON", "DIS", "BID"));
         Z3Solver z3;
 
+        int modelAmount = 0;
+
         final List<Issue> issues = new ArrayList<>();
         List<Bid> bids = new ArrayList<>();
 
-        z3 = new Z3Solver(
-            bids,
-            issues
-        );
-
-        for(int i = 1; i < data.length; i++) {
+        for (int i = 1; i < data.length; i++) {
             String currentCommand = data[i];
 
-            switch(currentCommand) {
+            System.out.println("Issues Created: " + issues.size());
+            System.out.println("Bids Created: " + bids.size());
+
+            switch (currentCommand) {
                 case "CON":
+                    System.out.println("----\nContinuous Issue");
+                    modelAmount += 4;
+
                     Issue intIssue = new IssueInteger(String.valueOf(issues.size()),
                             issues.size(),
                             Integer.parseInt(data[++i]),
@@ -79,9 +82,14 @@ public class Z3Main {
                     break;
                 case "DIS":
                     List<String> values = new ArrayList<>();
+                    System.out.println("----\nDiscrete Issue");
+                    modelAmount++;
 
-                    while(!data[i + 1].equals("EDIS")) {
+                    while (!data[i + 1].equals("EDIS")) {
                         values.add(data[++i]);
+                        System.out.println(data[i]);
+
+                        modelAmount++;
                     }
 
                     issues.add(new IssueDiscrete(
@@ -93,12 +101,17 @@ public class Z3Main {
                     HashMap<Integer, Value> bidMap = new HashMap<>();
                     Domain domain = new Z3Domain(issues);
 
-                    for(Issue iss : issues) {
-                        if(iss.getType() == ISSUETYPE.DISCRETE) {
+                    System.out.println("----\nBid");
+
+                    modelAmount++;
+
+                    for (Issue iss : issues) {
+                        if (iss.getType() == ISSUETYPE.DISCRETE) {
                             bidMap.put(iss.getNumber(), new ValueDiscrete(data[++i]));
-                        } else if(iss.getType() == ISSUETYPE.INTEGER) {
+                        } else if (iss.getType() == ISSUETYPE.INTEGER) {
                             bidMap.put(iss.getNumber(), new ValueInteger(Integer.valueOf(data[++i])));
                         }
+                        System.out.println(data[i]);
                     }
                     bids.add(new Bid(domain, bidMap));
 
@@ -109,23 +122,41 @@ public class Z3Main {
             }
 
             // Should close the currentCommand
-            if(!data[++i].equals("E" + currentCommand)) {
+            if (!data[++i].equals("E" + currentCommand)) {
                 System.out.println("The closing command is not valid: " + data[i]);
                 throw new Z3ParseException();
             }
         }
 
-        Model model = z3.estimate(bids, issues);
+        z3 = new Z3Solver(
+                bids,
+                issues
+        );
+
+        List<Model.ValueAssignment> model = z3.estimate(bids, issues);
 
         List<String> returnData = new ArrayList<>();
 
         // Parse estimator results
-        if(model != null) {
-            for(Model.ValueAssignment v : model.asList()) {
-                System.out.println(v.getName() + " - " + v.getValue().toString());
+        if (model != null) {
+            try {
+                for (int i = 0; i < modelAmount; i++) {
+                    Model.ValueAssignment va = model.get(i);
+                    System.out.println(va.getName() + " - " + va.getValue());
+                }
+            } catch(Exception | Error e) {
+                System.err.println("Something went wrong!");
+                System.err.println(e);
             }
         } else {
             returnData.add("ERR");
+        }
+
+        try {
+            z3.close();
+        } catch(Error | Exception e) {
+            System.err.println("Something went wrong while closing the solver");
+            System.err.println(e);
         }
 
         return returnData.toArray(new String[0]);
@@ -134,7 +165,7 @@ public class Z3Main {
     public static String messageFormatter(String[] data) {
         StringBuilder ss = new StringBuilder();
 
-        for(String item : data) {
+        for (String item : data) {
             ss.append(item);
             ss.append(";;");
         }
