@@ -1,14 +1,21 @@
 package z3;
 
+import com.sun.jdi.IntegerValue;
+import com.sun.tools.jdi.IntegerValueImpl;
+import genius.core.Bid;
+import genius.core.Domain;
+import genius.core.DomainImpl;
+import genius.core.analysis.pareto.IssueValue;
+import genius.core.issue.*;
+import genius.core.utility.AdditiveUtilitySpace;
+import genius.extended.Z3Domain;
+import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 public class Z3Main {
     public static void main(String[] args) {
@@ -56,50 +63,74 @@ public class Z3Main {
         HashSet<String> possibleCommands = new HashSet<>(Arrays.asList("CON", "DIS", "BID"));
         Z3Solver z3;
 
-        List<NumeralFormula.RationalFormula> weightings = new ArrayList<>();
-        List<List<NumeralFormula.RationalFormula>> issues = new ArrayList<>();
-        List<List<NumeralFormula.RationalFormula>> bidValues = new ArrayList<>();
-        List<String> issueTypes = new ArrayList<>();
+        final List<Issue> issues = new ArrayList<>();
+        List<Bid> bids = new ArrayList<>();
+
+        z3 = new Z3Solver(
+            bids,
+            issues
+        );
 
         for(int i = 1; i < data.length; i++) {
             String currentCommand = data[i];
-            String item = data[++i];
 
-            if(possibleCommands.contains(currentCommand) && !currentCommand.equals("BID")) {
-                issueTypes.add(currentCommand);
+            switch(currentCommand) {
+                case "CON":
+                    Issue intIssue = new IssueInteger(String.valueOf(issues.size()),
+                            issues.size(),
+                            Integer.parseInt(data[++i]),
+                            Integer.parseInt(data[++i]));
+
+                    issues.add(intIssue);
+                    break;
+                case "DIS":
+                    List<String> values = new ArrayList<>();
+
+                    while(!data[i + 1].equals("EDIS")) {
+                        values.add(data[++i]);
+                    }
+
+                    issues.add(new IssueDiscrete(
+                            String.valueOf(issues.size()),
+                            issues.size(),
+                            values.toArray(new String[0])));
+                    break;
+                case "BID":
+                    HashMap<Integer, Value> bidMap = new HashMap<>();
+                    Domain domain = new Z3Domain(issues);
+
+                    for(Issue iss : issues) {
+                        if(iss.getType() == ISSUETYPE.DISCRETE) {
+                            bidMap.put(iss.getNumber(), new ValueDiscrete(data[++i]));
+                        } else if(iss.getType() == ISSUETYPE.INTEGER) {
+                            bidMap.put(iss.getNumber(), new ValueInteger(Integer.valueOf(data[++i])));
+                        }
+                    }
+                    bids.add(new Bid(domain, bidMap));
+
+                    break;
+                default:
+                    throw new Z3ParseException();
             }
 
-            while(!item.equals("E" + currentCommand)) {
-                if(possibleCommands.contains(item)) {
-                    throw new Z3ParseException();
-                }
-
-                switch(currentCommand) {
-                    case "CON":
-                        break;
-                    case "DIS":
-                        break;
-                    case "BID":
-                        break;
-                    default:
-                        throw new Z3ParseException();
-                }
-
-                item = data[++i];
+            // Should close the currentCommand
+            if(!data[++i].equals("E" + currentCommand)) {
+                throw new Z3ParseException();
             }
         }
 
-        z3 = new Z3Solver(
-            weightings,
-            issues,
-            bidValues,
-            issueTypes.toArray(new String[0])
-        );
-        z3.estimate();
+        Model model = z3.estimate(bids, issues);
 
         List<String> returnData = new ArrayList<>();
 
         // Parse estimator results
+        if(model != null) {
+            for(Model.ValueAssignment v : model.asList()) {
+                System.out.println(v.getName() + " - " + v.getValue().toString());
+            }
+        } else {
+            returnData.add("ERR");
+        }
 
         return returnData.toArray(new String[0]);
     }
