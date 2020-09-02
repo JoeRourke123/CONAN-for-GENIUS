@@ -4,6 +4,7 @@ import genius.core.Bid;
 import genius.core.Domain;
 import genius.core.issue.*;
 import genius.extended.Z3Domain;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.java_smt.api.Model;
 
 import java.io.*;
@@ -21,27 +22,31 @@ public class Z3Main {
                 Socket socket = server.accept();
                 String[] returnData = {"ERR"};
 
-                try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+                try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                     PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
                     String[] data = in.readLine().split(";;;");
 
                     switch (data[0]) {
                         // For building a model given a domain and
                         case "BLDMDL":
                             returnData = buildModel(data);
+                            break;
                         default:
                             throw new Z3ParseException();
                     }
+
+                    String formatted = messageFormatter(returnData);
+                    System.out.println(formatted);
+                    writer.println(formatted);
                 } catch (Z3ParseException z) {
                     System.err.println("The data provided was not valid");
                 }
 
-                OutputStream output = socket.getOutputStream();
-                PrintWriter writer = new PrintWriter(output, true);
-
-                writer.println(messageFormatter(returnData));
+                socket.close();
             }
         } catch (IOException i) {
             System.err.println("There was an IOException...");
+            System.err.println(i);
         } finally {
             try {
                 if (server != null) {
@@ -138,13 +143,44 @@ public class Z3Main {
         List<String> returnData = new ArrayList<>();
 
         // Parse estimator results
-        if (model != null) {
+        if (model != null && model.size() > 0) {
+            returnData.add("MDL");
+
             try {
+                Map<String, Double> mappedValues = new HashMap<>();
+                List<String> weightings = new ArrayList<>();
+
                 for (int i = 0; i < modelAmount; i++) {
                     Model.ValueAssignment va = model.get(i);
                     System.out.println(va.getName() + " - " + va.getValue());
+
+                    mappedValues.put(va.getName(), ((Rational) va.getValue()).doubleValue());
                 }
-            } catch(Exception | Error e) {
+
+                for (int issueCount = 0; issueCount < issues.size(); issueCount++) {
+                    Issue issue = issues.get(issueCount);
+                    weightings.add(mappedValues.get("weight-" + issueCount).toString());
+
+                    if (issue.getType() == ISSUETYPE.DISCRETE) {
+                        returnData.add("DIS");
+                        for (int valueCount = 0; valueCount < ((IssueDiscrete) issue).getNumberOfValues(); valueCount++) {
+                            returnData.add(mappedValues.get("issue-" + issueCount + "-" + valueCount).toString());
+                        }
+                        returnData.add("EDIS");
+                    } else if (issue.getType() == ISSUETYPE.INTEGER) {
+                        returnData.add("CON");
+                        returnData.add(mappedValues.get("issue-" + issueCount + "-minutil").toString());
+                        returnData.add(mappedValues.get("issue-" + issueCount + "-maxutil").toString());
+                        returnData.add(mappedValues.get("issue-" + issueCount + "-slope").toString());
+                        returnData.add("ECON");
+                    }
+                }
+
+                returnData.add("WHT");
+                returnData.addAll(weightings);
+                returnData.add("EWHT");
+
+            } catch (Exception | Error e) {
                 System.err.println("Something went wrong!");
                 System.err.println(e);
             }
@@ -152,22 +188,19 @@ public class Z3Main {
             returnData.add("ERR");
         }
 
-        try {
-            z3.close();
-        } catch(Error | Exception e) {
-            System.err.println("Something went wrong while closing the solver");
-            System.err.println(e);
-        }
 
         return returnData.toArray(new String[0]);
     }
 
-    public static String messageFormatter(String[] data) {
+    private static String messageFormatter(String[] data) {
         StringBuilder ss = new StringBuilder();
 
-        for (String item : data) {
-            ss.append(item);
-            ss.append(";;");
+        for (int i = 0; i < data.length; i++) {
+            ss.append(data[i]);
+
+            if (i < data.length - 1) {
+                ss.append(";;;");
+            }
         }
 
         return ss.toString();

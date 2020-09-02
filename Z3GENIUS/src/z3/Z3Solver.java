@@ -94,7 +94,7 @@ public class Z3Solver {
 
             boolean isUnsat = prover.isUnsat();
             assert !isUnsat;
-           return prover.getModelAssignments();
+            return prover.getModelAssignments();
         } catch (InterruptedException | SolverException e) {
             System.err.println("Model is not satisfiable");
             System.err.println(e);
@@ -105,38 +105,38 @@ public class Z3Solver {
 
     private void bidUtilityConstraint(NumeralFormula.RationalFormula bidFormula, Bid bid) {
         NumeralFormula.RationalFormula util = nums.makeNumber(0.0);
-        for(int i = 0; i < bid.getIssues().size(); i++) {
+        for (int i = 0; i < bid.getIssues().size(); i++) {
             Issue issue = bid.getIssues().get(i);
 
-            if(issue.getType() == ISSUETYPE.DISCRETE) {
+            if (issue.getType() == ISSUETYPE.DISCRETE) {
                 int valueIndex = ((IssueDiscrete) issue).getValueIndex((ValueDiscrete) bid.getValue(issue));
                 NumeralFormula.RationalFormula bidValue = nums.divide(discreteIssueValues[i][valueIndex], discreteIssueValues[i][discreteIssueValues[i].length - 1]);
                 util = nums.add(util, nums.multiply(
-                    bidValue,
-                    weightings[i]
+                        bidValue,
+                        weightings[i]
                 ));
-            } else if(issue.getType() == ISSUETYPE.INTEGER) {
+            } else if (issue.getType() == ISSUETYPE.INTEGER) {
                 NumeralFormula.RationalFormula bidValue = nums.makeNumber((((ValueInteger) bid.getValue(issue)).getValue()));
                 util = nums.add(util,
-                                nums.multiply(
-                                        nums.add(nums.multiply(intIssueSlopes[i], bidValue), intIssueUtilities[i][0]),
-                                        weightings[i]
-                                ));
+                        nums.multiply(
+                                nums.add(nums.multiply(intIssueSlopes[i], bidValue), intIssueUtilities[i][0]),
+                                weightings[i]
+                        ));
             }
         }
 
         constraints.add(
-            nums.equal(
-                bidFormula,
-                util
-            )
+                nums.equal(
+                        bidFormula,
+                        util
+                )
         );
     }
 
     private void bidOrderConstraint(NumeralFormula.RationalFormula[] bids) {
-        for(int i = 0; i < bids.length - 1; i++) {
+        for (int i = 0; i < bids.length - 1; i++) {
             constraints.add(
-                nums.lessOrEquals(bids[i], bids[i + 1])
+                    nums.lessOrEquals(bids[i], bids[i + 1])
             );
         }
     }
@@ -189,7 +189,7 @@ public class Z3Solver {
         isBetweenOneZero(intIssueUtilities[issueIndex][1], false, true);
 
         constraints.add(
-            nums.lessThan(intIssueUtilities[issueIndex][0], intIssueUtilities[issueIndex][1])
+                nums.lessThan(intIssueUtilities[issueIndex][0], intIssueUtilities[issueIndex][1])
         );
 
         intIssueSlopes[issueIndex] = nums.makeVariable("issue-" + issueIndex + "-slope");
@@ -203,7 +203,13 @@ public class Z3Solver {
     }
 
     public void close() {
-        context.close();
-        prover.close();
+        try {
+            context.close();
+            prover.close();
+            shutdown.requestShutdown("End of Use");
+        } catch(Error | Exception e) {
+            System.err.println("An error occured while closing Z3");
+            System.err.println(e);
+        }
     }
 }
