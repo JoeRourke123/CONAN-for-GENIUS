@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -31,6 +30,7 @@ public class SocketParty extends AbstractNegotiationParty {
     public void init(NegotiationInfo info) {
         super.init(info);
 
+        // This code will automatically launch the Z3GENIUS program if uncommented
 //        try {
 //            process = new ProcessBuilder("java", "-jar", "artifacts/Z3GENIUS_jar/Z3GENIUS.jar").start();
 //        } catch (IOException i) {
@@ -38,6 +38,13 @@ public class SocketParty extends AbstractNegotiationParty {
 //        }
     }
 
+    /**
+     * estimateUtilitySpace (overridden from the GENIUS class)
+     * - Connects to the Z3GENIUS program and sends a message containing the available data to the agent on the
+     * domain and the preference bids
+     * - Waits for a response from the server and then parses these values into a utility space class
+     * - Only run if the agent is not provided with the full preference profile
+     */
     @Override
     public AbstractUtilitySpace estimateUtilitySpace() {
         startConnection();
@@ -49,14 +56,17 @@ public class SocketParty extends AbstractNegotiationParty {
             int issueIndex = 0;
             AdditiveUtilitySpace utilSpace = new AdditiveUtilitySpace(getDomain());
 
+            // Checks that the response is actually model information based on my protocol, otherwise null is returned
             if (data[0].equals("MDL")) {
                 for (int i = 1; i < data.length; i++) {
                     String currentCommand = data[i];
 
                     switch (currentCommand) {
+                        // Checks if data is the estimated continuous values
                         case "CON":
                             EvaluatorInteger evalCon = new EvaluatorInteger();
 
+                            // Builds an evaluator object using the minimum and maximum possible utilties
                             evalCon.setLinearFunction(Double.valueOf(data[++i]), Double.valueOf(data[++i]));
 
                             utilSpace.addEvaluator(getDomain().getIssues().get(issueIndex++), evalCon);
@@ -67,6 +77,7 @@ public class SocketParty extends AbstractNegotiationParty {
                             int valueIndex = 0;
 
                             while(!data[i + 1].equals("EDIS")) {
+                                // Adds an evaluation for each possible value in the discrete issue
                                 evalDis.setEvaluationDouble(
                                     issueDis.getValue(valueIndex++),
                                     Double.valueOf(data[++i])
@@ -80,6 +91,7 @@ public class SocketParty extends AbstractNegotiationParty {
                                 issueIndex = 0;
                             }
 
+                            // Adds the weights of each issue to the utility space also
                             while(!data[i + 1].equals("EWHT")) {
                                 utilSpace.setWeight(
                                         getDomain().getIssues().get(issueIndex++),
@@ -91,7 +103,7 @@ public class SocketParty extends AbstractNegotiationParty {
                             throw new NullPointerException();
                     }
 
-                    // Should close the currentCommand
+                    // Should close the currentCommand or throw an error if the message is invalid
                     if (!data[++i].equals("E" + currentCommand)) {
                         System.out.println("The closing command is not valid: " + data[i]);
                         throw new NullPointerException();
@@ -103,10 +115,15 @@ public class SocketParty extends AbstractNegotiationParty {
                 throw new NullPointerException();
             }
         } catch (NullPointerException n) {
+            System.err.println("The message received was not valid");
             return null;
         }
     }
 
+    /**
+     * Opens a connection to the Z3GENIUS program over a socket, and uses readers and writers to
+     * send and receive data from the respective in/out streams
+     */
     private void startConnection() {
         try {
             socket = new Socket("127.0.0.1", 102);
@@ -117,10 +134,16 @@ public class SocketParty extends AbstractNegotiationParty {
         }
     }
 
+    /**
+     * Sends the msg parameter over the socket to the Z3GENIUS program
+     * @param msg - a string message, written in the custom protocol, to be sent
+     * @return - the response from the server, synchronously waited for using a loop
+     */
     private String sendCommand(String msg) {
         try {
             out.println(msg);
             String resp;
+            // Keep checking if the server responds until it does
             while ((resp = in.readLine()) == null) ;
 
             return resp;
@@ -129,16 +152,6 @@ public class SocketParty extends AbstractNegotiationParty {
         }
 
         return null;
-    }
-
-    private void stopConnection() {
-        try {
-            in.close();
-            out.close();
-            socket.close();
-        } catch (IOException i) {
-            System.err.println("There was an error when closing the sockets");
-        }
     }
 
     @Override
@@ -151,14 +164,11 @@ public class SocketParty extends AbstractNegotiationParty {
         return "Connects to Z3 solver over a socket connection";
     }
 
-    @Override
-    public HashMap<String, String> negotiationEnded(Bid acceptedBid) {
-//        if(hasPreferenceUncertainty()) {
-//            stopConnection();
-//        }
-        return super.negotiationEnded(acceptedBid);
-    }
-
+    /**
+     * Builds a readable message in the custom protocol to be sent to the Z3GENIUS server
+     * Contains the issues in the domain, as well as the bids provided by GENIUS in the case of uncertainty
+     * @return - a string correctly formatted and parsable by the server
+     */
     public String getModelRequest() {
         StringBuilder sb = new StringBuilder();
         sb.append("BLDMDL;;;");

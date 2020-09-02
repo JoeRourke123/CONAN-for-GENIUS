@@ -171,7 +171,6 @@ public class Z3Main {
                         returnData.add("CON");
                         returnData.add(mappedValues.get("issue-" + issueCount + "-minutil").toString());
                         returnData.add(mappedValues.get("issue-" + issueCount + "-maxutil").toString());
-                        returnData.add(mappedValues.get("issue-" + issueCount + "-slope").toString());
                         returnData.add("ECON");
                     }
                 }
