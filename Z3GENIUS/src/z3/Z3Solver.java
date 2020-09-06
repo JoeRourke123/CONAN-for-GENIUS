@@ -33,23 +33,32 @@ public class Z3Solver {
     private SolverContext context;
     private ProverEnvironment prover;
 
+    /**
+     * Initialises all the required class variables for the Z3 solver to generate an appropriate model
+     * @param bids - an array list of bids - only used to get the required sizes for the internal arrays
+     * @param issues - an array list of issues - " "
+     */
     public Z3Solver(
             List<Bid> bids,
             List<Issue> issues
     ) {
         try {
+            // These are objects required for the use of the Java-SMT library
             Configuration config = Configuration.fromCmdLineArguments(new String[0]);
             logger = BasicLogManager.create(config);
             shutdown = ShutdownManager.create();
 
+            // These allow constraints to be applied to the model
             context = SolverContextFactory.createSolverContext(config, logger, shutdown.getNotifier(), SolverContextFactory.Solvers.Z3);
-            nums = context.getFormulaManager().getRationalFormulaManager();
-            bools = context.getFormulaManager().getBooleanFormulaManager();
+            nums = context.getFormulaManager().getRationalFormulaManager(); // For adding numeric constraints
+            bools = context.getFormulaManager().getBooleanFormulaManager(); // For adding boolean/logical constraints
         } catch (InvalidConfigurationException e) {
             System.out.println("Something went wrong with the configuration of Z3");
             System.err.println(e);
         }
 
+        // Stores the rational formula objects (an encapsulation of numeric values for JavaSMT) used for generating
+        // the various different values required for GENIUS
         this.weightings = new NumeralFormula.RationalFormula[issues.size()];
 
         this.bidUtilities = new NumeralFormula.RationalFormula[bids.size()];
@@ -59,12 +68,23 @@ public class Z3Solver {
         this.intIssueSlopes = new NumeralFormula.RationalFormula[issues.size()];
         this.intIssueUtilities = new NumeralFormula.RationalFormula[issues.size()][2];
 
+        // The constraints use an ArrayList over a primitive array due to it's variable length
         this.constraints = new ArrayList<>();
     }
 
+    /**
+     * Given a list of bid objects and issue objects, a model is generated which can estimate the preferences
+     * of a user in the given domain
+     * @param bids - the pre-populated list of bids from a message sent from the client to the program
+     * @param issues - the generated list of issues, either discrete or continuous
+     * @return - a list of values assigned by the model
+     */
     public List<Model.ValueAssignment> estimate(List<Bid> bids, List<Issue> issues) {
+        // Makes a call to a method for applying all the required constraints for the weighting values
+        // for each issue
         addWeightConstraints();
 
+        // For each issue, add the appropriate constraints (depending on whether it is discrete or continuous)
         int index = 0;
         for (Issue issue : issues) {
             if (issue.getType() == ISSUETYPE.INTEGER) {
@@ -76,11 +96,12 @@ public class Z3Solver {
             index++;
         }
 
+        // For each bid, add the constraints required for
         for (int i = 0; i < bids.size(); i++) {
             bidUtilities[i] = nums.makeVariable("bid-" + i);
             Bid bid = bids.get(i);
             bidUtilityConstraint(bidUtilities[i], bid);
-            isBetweenOneZero(bidUtilities[i], false, true);
+//            isBetweenOneZero(bidUtilities[i], true, true);
         }
 
         bidOrderConstraint(bidUtilities);
@@ -136,7 +157,7 @@ public class Z3Solver {
     private void bidOrderConstraint(NumeralFormula.RationalFormula[] bids) {
         for (int i = 0; i < bids.length - 1; i++) {
             constraints.add(
-                    nums.lessOrEquals(bids[i], bids[i + 1])
+                    nums.lessThan(bids[i], bids[i + 1])
             );
         }
     }
