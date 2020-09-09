@@ -83,8 +83,10 @@ public class Z3Main {
      * @throws Z3ParseException - for the situation where the data provided to the server may be incorrectly formatted
      */
     private static String[] buildModel(String[] data) throws Z3ParseException {
-        HashSet<String> possibleCommands = new HashSet<>(Arrays.asList("CON", "DIS", "BID"));
+        HashSet<String> possibleCommands = new HashSet<>(Arrays.asList("CON", "DIS", "BID", "BND"));
         Z3Solver z3;
+
+        double lowBound = 0.0, highBound = 1.0;
 
         // This counter is used later for the parsing of results from the model
         int modelAmount = 0;
@@ -152,6 +154,10 @@ public class Z3Main {
                     bids.add(new Bid(domain, bidMap));
 
                     break;
+                case "BND":
+                    lowBound = Double.parseDouble(data[++i]);
+                    highBound = Double.parseDouble(data[++i]);
+                    break;
                 default:
                     System.err.println("The provided command is not valid: " + currentCommand);
                     throw new Z3ParseException();
@@ -171,7 +177,7 @@ public class Z3Main {
         );
 
         // Get the model values from the constraints applied in the estimate method
-        List<Model.ValueAssignment> model = z3.estimate(bids, issues);
+        List<Model.ValueAssignment> model = z3.estimate(bids, issues, lowBound, highBound);
 
         List<String> returnData = new ArrayList<>();
 

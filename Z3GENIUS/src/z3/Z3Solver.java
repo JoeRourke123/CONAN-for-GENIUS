@@ -79,7 +79,7 @@ public class Z3Solver {
      * @param issues - the generated list of issues, either discrete or continuous
      * @return - a list of values assigned by the model
      */
-    public List<Model.ValueAssignment> estimate(List<Bid> bids, List<Issue> issues) {
+    public List<Model.ValueAssignment> estimate(List<Bid> bids, List<Issue> issues, double lowBidUitility, double highBidUtility) {
         // Makes a call to a method for applying all the required constraints for the weighting values
         // for each issue
         addWeightConstraints();
@@ -100,11 +100,11 @@ public class Z3Solver {
         for (int i = 0; i < bids.size(); i++) {
             bidUtilities[i] = nums.makeVariable("bid-" + i);
             Bid bid = bids.get(i);
-            bidUtilityConstraint(bidUtilities[i], bid);
 //            isBetweenOneZero(bidUtilities[i], true, true);
+            bidUtilityConstraint(bidUtilities[i], bid);
         }
 
-        bidOrderConstraint(bidUtilities);
+        bidOrderConstraint(bidUtilities, lowBidUitility, highBidUtility);
 
         prover = context.newProverEnvironment(SolverContext.ProverOptions.GENERATE_MODELS);
 
@@ -131,9 +131,8 @@ public class Z3Solver {
 
             if (issue.getType() == ISSUETYPE.DISCRETE) {
                 int valueIndex = ((IssueDiscrete) issue).getValueIndex((ValueDiscrete) bid.getValue(issue));
-                NumeralFormula.RationalFormula bidValue = nums.divide(discreteIssueValues[i][valueIndex], discreteIssueValues[i][discreteIssueValues[i].length - 1]);
                 util = nums.add(util, nums.multiply(
-                        bidValue,
+                        discreteIssueValues[i][valueIndex],
                         weightings[i]
                 ));
             } else if (issue.getType() == ISSUETYPE.INTEGER) {
@@ -154,12 +153,23 @@ public class Z3Solver {
         );
     }
 
-    private void bidOrderConstraint(NumeralFormula.RationalFormula[] bids) {
+    private void bidOrderConstraint(NumeralFormula.RationalFormula[] bids, double lowUtil, double highUtil) {
+        constraints.add(
+            nums.equal(bids[0], nums.makeNumber(lowUtil))
+        );
+
         for (int i = 0; i < bids.length - 1; i++) {
             constraints.add(
-                    nums.lessThan(bids[i], bids[i + 1])
+                nums.lessOrEquals(bids[i], bids[i + 1])
+            );
+            constraints.add(
+                nums.lessOrEquals(bids[i], nums.makeNumber(1.0))
             );
         }
+
+        constraints.add(
+            nums.equal(bids[bids.length - 1], nums.makeNumber(highUtil))
+        );
     }
 
     public void addWeightConstraints() {
@@ -167,7 +177,7 @@ public class Z3Solver {
         for (int i = 0; i < weightings.length; i++) {
             weightings[i] = nums.makeVariable("weight-" + i);
 
-            isBetweenOneZero(weightings[i], false, false);
+            isBetweenOneZero(weightings[i], false, weightings.length == 1);
 
             weightSum = nums.add(weightSum, weightings[i]);
         }
@@ -234,3 +244,4 @@ public class Z3Solver {
         }
     }
 }
+
