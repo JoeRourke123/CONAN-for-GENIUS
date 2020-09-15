@@ -1,6 +1,7 @@
 package z3enius;
 
 import genius.core.Bid;
+import genius.core.actions.Action;
 import genius.core.issue.*;
 import genius.core.parties.AbstractNegotiationParty;
 import genius.core.utility.AbstractUtilitySpace;
@@ -14,8 +15,9 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.List;
 
-public abstract class Z3niusParty extends AbstractNegotiationParty {
+public class Z3niusParty extends AbstractNegotiationParty {
     protected Socket socket;
     protected BufferedReader in;
     protected PrintWriter out;
@@ -141,44 +143,6 @@ public abstract class Z3niusParty extends AbstractNegotiationParty {
     }
 
     /**
-     * Gets a random value for the given issue.
-     *
-     * @param currentIssue The issue to generate a random value for
-     * @return The random value generated for the issue
-     * @throws Exception if the issues type is not Discrete, Real or Integer.
-     */
-    protected Value getRandomValue(Issue currentIssue) throws Exception {
-
-        Value currentValue;
-        int index;
-
-        switch (currentIssue.getType()) {
-            case DISCRETE:
-                IssueDiscrete discreteIssue = (IssueDiscrete) currentIssue;
-                index = (rand.nextInt(discreteIssue.getNumberOfValues()));
-                currentValue = discreteIssue.getValue(index);
-                break;
-            case REAL:
-                IssueReal realIss = (IssueReal) currentIssue;
-                index = rand.nextInt(realIss.getNumberOfDiscretizationSteps()); // check
-                // this!
-                currentValue = new ValueReal(
-                        realIss.getLowerBound() + (((realIss.getUpperBound() - realIss.getLowerBound()))
-                                / (realIss.getNumberOfDiscretizationSteps())) * index);
-                break;
-            case INTEGER:
-                IssueInteger integerIssue = (IssueInteger) currentIssue;
-                index = rand.nextInt(integerIssue.getUpperBound() - integerIssue.getLowerBound() + 1);
-                currentValue = new ValueInteger(integerIssue.getLowerBound() + index);
-                break;
-            default:
-                throw new Exception("issue type " + currentIssue.getType() + " not supported");
-        }
-
-        return currentValue;
-    }
-
-    /**
      * Builds a readable message in the custom protocol to be sent to the Z3GENIUS server
      * Contains the issues in the domain, as well as the bids provided by GENIUS in the case of uncertainty
      *
@@ -234,5 +198,15 @@ public abstract class Z3niusParty extends AbstractNegotiationParty {
         sb.append(";;;EBND");
 
         return sb.toString();
+    }
+
+    @Override
+    public Action chooseAction(List<Class<? extends Action>> possibleActions) {
+        return null;
+    }
+
+    @Override
+    public String getDescription() {
+        return "A non-instantiatable party to be extended for connecting to the Z3GENIUS program";
     }
 }

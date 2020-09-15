@@ -22,6 +22,11 @@ public class SimpleParty extends AbstractNegotiationParty {
         Action lastReceived = getLastReceivedAction();
         Bid lastBid;
 
+        System.out.println(timeline.getTime());
+        System.out.println(timeline.getCurrentTime());
+        System.out.println(timeline.getTotalTime());
+        System.out.println("---------");
+
         // Checks that the agent has received an Offer and not some other form of message
         if(lastReceived instanceof Offer) {
             lastBid = ((Offer) lastReceived).getBid();
