@@ -22,6 +22,8 @@ public class Z3niusParty extends AbstractNegotiationParty {
     protected BufferedReader in;
     protected PrintWriter out;
 
+    protected double[] weightings;
+
     /**
      * estimateUtilitySpace (overridden from the GENIUS class)
      * - Connects to the Z3GENIUS program and sends a message containing the available data to the agent on the
@@ -73,15 +75,19 @@ public class Z3niusParty extends AbstractNegotiationParty {
                             utilSpace.addEvaluator(issueDis, evalDis);
                             break;
                         case "WHT":
+                            weightings = new double[getDomain().getIssues().size()];
+
                             if (issueIndex > 0) {
                                 issueIndex = 0;
                             }
 
                             // Adds the weights of each issue to the utility space also
                             while (!data[i + 1].equals("EWHT")) {
-                                utilSpace.setWeight(
-                                        getDomain().getIssues().get(issueIndex++),
-                                        Double.valueOf(data[++i]));
+                                double weight = Double.valueOf(data[++i]);
+
+                                weightings[issueIndex] = weight;
+
+                                utilSpace.setWeight(getDomain().getIssues().get(issueIndex++), weight);
                             }
                             break;
                         default:
