@@ -75,12 +75,11 @@ public class ConanParty extends Z3niusParty {
 
         double currentBidUtility = getUtility(currentBid);
 
-        double receivedUtility = -1.0;
         Bid acceptedBid = null;
         for (Bid lastReceived : getLastBids()) {
-            if (receivedUtility >= currentBidUtility) {
+            double receivedUtil = getUtility(lastReceived);
+            if (receivedUtil >= currentBidUtility && (acceptedBid == null || getUtility(acceptedBid) < receivedUtil)) {
                 printBid(lastReceived, "Accepting Bid");
-                receivedUtility = getUtility(lastReceived);
                 acceptedBid = lastReceived;
             }
         }
