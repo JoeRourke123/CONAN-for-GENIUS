@@ -23,6 +23,5 @@ hs_err_pid*
 
 .idea/
 build/
-lib/
 *.iml
 .DS_Store

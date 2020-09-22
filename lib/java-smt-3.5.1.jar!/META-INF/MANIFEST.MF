@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Class-Path: CVC4.jar animal-sniffer-annotations.jar checker-qual.jar com
+ .microsoft.z3.jar common.jar error_prone_annotations.jar failureaccess.
+ jar guava.jar j2objc-annotations.jar java-cup-runtime.jar jsr305.jar li
+ stenablefuture.jar princess-parser_2.13.jar princess-smt-parser_2.13.ja
+ r princess_2.13.jar scala-library.jar scala-parser-combinators_2.13.jar
+  smtinterpol.jar spotbugs-annotations.jar
+
