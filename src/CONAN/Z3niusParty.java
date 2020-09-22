@@ -1,4 +1,4 @@
-package z3enius;
+package CONAN;
 
 import genius.core.Bid;
 import genius.core.actions.Action;
@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.nio.file.FileSystems;
 import java.util.HashMap;
 import java.util.List;
 
@@ -33,6 +34,7 @@ public class Z3niusParty extends AbstractNegotiationParty {
      */
     public AbstractUtilitySpace estimateUtilitySpace() {
         System.out.println("Starting Connection");
+        openZ3GENIUS();
         startConnection();
         System.out.println("Connection Started");
         String modelRequest = getModelRequest();
@@ -109,6 +111,18 @@ public class Z3niusParty extends AbstractNegotiationParty {
         } catch (NullPointerException n) {
             System.err.println("The message received was not valid");
             return null;
+        }
+    }
+
+    private void openZ3GENIUS() {
+        try {
+            ProcessBuilder builder = new ProcessBuilder(
+                    "java", "-jar", "artifacts/Z3GENIUS_jar/Z3GENIUS.jar");
+            builder.redirectErrorStream(true);
+            Process p = builder.start();
+            Thread.sleep(5000);
+        } catch(IOException | InterruptedException i) {
+            System.err.println("There was a problem when opening the Z3GENIUS program");
         }
     }
 

@@ -5,7 +5,7 @@ import genius.core.actions.Accept;
 import genius.core.actions.Action;
 import genius.core.actions.Offer;
 import genius.core.parties.NegotiationInfo;
-import z3enius.Z3niusParty;
+import CONAN.Z3niusParty;
 
 import java.util.List;
 
