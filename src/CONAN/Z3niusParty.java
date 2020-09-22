@@ -15,6 +15,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.nio.file.FileSystems;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 
@@ -116,8 +117,10 @@ public class Z3niusParty extends AbstractNegotiationParty {
 
     private void openZ3GENIUS() {
         try {
+            String absolutePath = FileSystems.getDefault().getPath(".").toAbsolutePath().toString();
+
             ProcessBuilder builder = new ProcessBuilder(
-                    "java", "-jar", "artifacts/Z3GENIUS_jar/Z3GENIUS.jar");
+                    "java", "-jar", absolutePath + "/artifacts/Z3GENIUS_jar/Z3GENIUS.jar");
             builder.redirectErrorStream(true);
             Process p = builder.start();
             Thread.sleep(5000);
