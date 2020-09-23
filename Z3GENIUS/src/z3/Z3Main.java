@@ -23,7 +23,7 @@ public class Z3Main {
         ServerSocket server = null;
         try {
             // Set up the server on port 102 - only allowing 1 connection at the time currently.
-            server = new ServerSocket(102, 1);
+            server = new ServerSocket(10211, 1);
 
             // An infinite loop which will continually accept connections when data is provided
             while (true) {

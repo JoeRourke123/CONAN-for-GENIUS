@@ -1,0 +1,7 @@
+<?xml version="1.0" ?><Session>
+<NegotiationOutcome currentTime="Wed Sep 23 10:26:28 BST 2020" timeOfAgreement="0.3442622950819672" lastAction="(Accept  bid:Bid[Laptop: HP, Harddisk: 80 Gb, External Monitor: 19'' LCD])" domain="etc/templates/anac/y2011/Laptop/laptop_domain.xml" bids="41" runtime="0.074458032" finalOutcome="Bid[Laptop: HP, Harddisk: 80 Gb, External Monitor: 19'' LCD]" startingAgent="ConanParty@2" deadline="60rounds">
+<resultsOfAgent agent="ConanParty@2" agentDesc="Implementation of the ConanParty strategy for GENIUS" utilspace="etc/templates/anac/y2011/Laptop/laptop_buyer_utility_u20.xml" agentClass="CONAN.ConanParty" finalUtility="0.8738809580242486" discountedUtility="0.6505984574071777" discount="0.42441038">
+</resultsOfAgent>
+<resultsOfAgent agent="ConcederNegotiationParty@3" agentDesc="Time-based conceder" utilspace="etc/templates/anac/y2011/Laptop/laptop_seller_utility_u10.xml" agentClass="negotiator.parties.ConcederNegotiationParty" finalUtility="0.873832627329898" discountedUtility="0.6505624755324141" discount="0.42441038">
+</resultsOfAgent>
+</NegotiationOutcome></Session>
