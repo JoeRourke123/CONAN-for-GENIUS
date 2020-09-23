@@ -35,7 +35,7 @@ public class Z3niusParty extends AbstractNegotiationParty {
      */
     public AbstractUtilitySpace estimateUtilitySpace() {
         System.out.println("Starting Connection");
-        openZ3GENIUS();
+        Process p = openZ3GENIUS();
         startConnection();
         System.out.println("Connection Started");
         String modelRequest = getModelRequest();
@@ -112,10 +112,14 @@ public class Z3niusParty extends AbstractNegotiationParty {
         } catch (NullPointerException n) {
             System.err.println("The message received was not valid");
             return null;
+        } finally {
+            if(p != null) {
+                p.destroy();
+            }
         }
     }
 
-    private void openZ3GENIUS() {
+    private Process openZ3GENIUS() {
         try {
             String absolutePath = FileSystems.getDefault().getPath(".").toAbsolutePath().toString();
 
@@ -124,9 +128,13 @@ public class Z3niusParty extends AbstractNegotiationParty {
             builder.redirectErrorStream(true);
             Process p = builder.start();
             Thread.sleep(5000);
+
+            return p;
         } catch(IOException | InterruptedException i) {
-            System.err.println("There was a problem when opening the Z3GENIUS program");
+            System.err.println("There was a problem when opening the Z3GENIUS program, it may already be open");
         }
+
+        return null;
     }
 
     /**
