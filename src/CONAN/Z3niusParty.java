@@ -35,7 +35,7 @@ public class Z3niusParty extends AbstractNegotiationParty {
      */
     public AbstractUtilitySpace estimateUtilitySpace() {
         System.out.println("Starting Connection");
-        Process p = openZ3GENIUS();
+//        Process p = openZ3GENIUS();
         startConnection();
         System.out.println("Connection Started");
         String modelRequest = getModelRequest();
@@ -113,9 +113,13 @@ public class Z3niusParty extends AbstractNegotiationParty {
             System.err.println("The message received was not valid");
             return null;
         } finally {
-            if(p != null) {
-                p.destroy();
-            }
+//            if(p != null) {
+//                try {
+//                    p.destroy();
+//                } catch(Exception e) {
+//                    System.err.println("The Z3GENIUS process could not be destroyed");
+//                }
+//            }
         }
     }
 
