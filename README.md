@@ -1,5 +1,5 @@
 # CONAN-for-GENIUS
-A Java implementation of the CONAN negotiation strategy to be used with the GENIUS platform.
+Prolog and Java implementation of the CONAN negotiation strategy to be used with the GENIUS platform.
 
 ## What can it do?
 * Operate in uncertain domains, estimating the preferences of the user using Z3 Solver
