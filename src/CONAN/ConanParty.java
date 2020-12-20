@@ -26,6 +26,7 @@ public class ConanParty extends Z3niusParty {
 
     @Override
     public void init(NegotiationInfo info) {
+        System.out.println("Initialisation Begins");
         super.init(info);
 
         if(!hasPreferenceUncertainty()) {

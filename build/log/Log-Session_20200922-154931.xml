@@ -1,7 +1,0 @@
-<?xml version="1.0" ?><Session>
-<NegotiationOutcome currentTime="Tue Sep 22 15:49:31 BST 2020" timeOfAgreement="0.32786885245901637" lastAction="(Accept  bid:Bid[Electric Vehicle: BMW i3, Battery Capacity: 100KW/KG, Charging Speed: 17, Weather Condition: Windy])" domain="etc/templates/ANAC2016/YXagent/Smart_Energy_Grid.xml" bids="39" runtime="0.167490077" finalOutcome="Bid[Electric Vehicle: BMW i3, Battery Capacity: 100KW/KG, Charging Speed: 17, Weather Condition: Windy]" startingAgent="SAGASpearman@2" deadline="60rounds">
-<resultsOfAgent agent="SAGASpearman@2" agentDesc="Simple Agent based on Genetic Algorithm" utilspace="etc/templates/ANAC2016/YXagent/Smart_Energy_Grid_util2.xml" agentClass="spearmanparty.SAGASpearman" finalUtility="1.0" discountedUtility="1.0" discount="1.0">
-</resultsOfAgent>
-<resultsOfAgent agent="ConanParty@3" agentDesc="Implementation of the ConanParty strategy for GENIUS" utilspace="etc/templates/ANAC2016/YXagent/Smart_Energy_Grid_util3.xml" agentClass="CONAN.ConanParty" finalUtility="0.7887919418060111" discountedUtility="0.7887919418060111" discount="1.0">
-</resultsOfAgent>
-</NegotiationOutcome></Session>

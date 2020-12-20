@@ -11,12 +11,13 @@ import org.sosy_lab.java_smt.SolverContextFactory;
 import org.sosy_lab.java_smt.api.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Z3Solver {
     private List<BooleanFormula> constraints;
 
-    private NumeralFormula.RationalFormula[] weightings;
+    private NumeralFormula[] weightings;
     private NumeralFormula.RationalFormula[] bidUtilities;
 
     private NumeralFormula.RationalFormula[][] discreteIssueValues;
@@ -28,14 +29,18 @@ public class Z3Solver {
     private LogManager logger;
     private ShutdownManager shutdown;
 
-    public RationalFormulaManager nums;
-    public BooleanFormulaManager bools;
+    private RationalFormulaManager nums;
+    private BooleanFormulaManager bools;
     private SolverContext context;
     private ProverEnvironment prover;
 
+    private NumeralFormula ONE;
+    private NumeralFormula ZERO;
+
     /**
      * Initialises all the required class variables for the Z3 solver to generate an appropriate model
-     * @param bids - an array list of bids - only used to get the required sizes for the internal arrays
+     *
+     * @param bids   - an array list of bids - only used to get the required sizes for the internal arrays
      * @param issues - an array list of issues - " "
      */
     public Z3Solver(
@@ -52,6 +57,9 @@ public class Z3Solver {
             context = SolverContextFactory.createSolverContext(config, logger, shutdown.getNotifier(), SolverContextFactory.Solvers.Z3);
             nums = context.getFormulaManager().getRationalFormulaManager(); // For adding numeric constraints
             bools = context.getFormulaManager().getBooleanFormulaManager(); // For adding boolean/logical constraints
+
+            ONE = nums.makeNumber(1.0);
+            ZERO = nums.makeNumber(0.0);
         } catch (InvalidConfigurationException e) {
             System.out.println("Something went wrong with the configuration of Z3");
             System.err.println(e);
@@ -64,7 +72,6 @@ public class Z3Solver {
         this.bidUtilities = new NumeralFormula.RationalFormula[bids.size()];
 
         this.discreteIssueValues = new NumeralFormula.RationalFormula[issues.size()][];
-        this.intIssueBounds = new NumeralFormula.RationalFormula[issues.size()][2];
         this.intIssueSlopes = new NumeralFormula.RationalFormula[issues.size()];
         this.intIssueUtilities = new NumeralFormula.RationalFormula[issues.size()][2];
 
@@ -75,7 +82,8 @@ public class Z3Solver {
     /**
      * Given a list of bid objects and issue objects, a model is generated which can estimate the preferences
      * of a user in the given domain
-     * @param bids - the pre-populated list of bids from a message sent from the client to the program
+     *
+     * @param bids   - the pre-populated list of bids from a message sent from the client to the program
      * @param issues - the generated list of issues, either discrete or continuous
      * @return - a list of values assigned by the model
      */
@@ -98,10 +106,8 @@ public class Z3Solver {
 
         // For each bid, add the constraints required for
         for (int i = 0; i < bids.size(); i++) {
-            bidUtilities[i] = nums.makeVariable("bid-" + i);
             Bid bid = bids.get(i);
-//            isBetweenOneZero(bidUtilities[i], true, true);
-            bidUtilityConstraint(bidUtilities[i], bid);
+            bidUtilityConstraint(i, bid);
         }
 
         bidOrderConstraint(bidUtilities, lowBidUitility, highBidUtility);
@@ -124,51 +130,44 @@ public class Z3Solver {
         return null;
     }
 
-    private void bidUtilityConstraint(NumeralFormula.RationalFormula bidFormula, Bid bid) {
-        NumeralFormula.RationalFormula util = nums.makeNumber(0.0);
+    private void bidUtilityConstraint(int bidIndex, Bid bid) {
+        List<NumeralFormula> utilSum = new ArrayList<>();
+
         for (int i = 0; i < bid.getIssues().size(); i++) {
             Issue issue = bid.getIssues().get(i);
 
             if (issue.getType() == ISSUETYPE.DISCRETE) {
                 int valueIndex = ((IssueDiscrete) issue).getValueIndex((ValueDiscrete) bid.getValue(issue));
-                util = nums.add(util, nums.multiply(
-                        discreteIssueValues[i][valueIndex],
-                        weightings[i]
+                utilSum.add(nums.multiply(
+                    discreteIssueValues[i][valueIndex],
+                    weightings[i]
                 ));
             } else if (issue.getType() == ISSUETYPE.INTEGER) {
                 NumeralFormula.RationalFormula bidValue = nums.makeNumber((((ValueInteger) bid.getValue(issue)).getValue()));
-                util = nums.add(util,
-                        nums.multiply(
-                                nums.add(nums.multiply(intIssueSlopes[i], bidValue), intIssueUtilities[i][0]),
-                                weightings[i]
-                        ));
+                utilSum.add(nums.multiply(
+                    nums.add(nums.multiply(intIssueSlopes[i], bidValue), intIssueUtilities[i][0]),
+                    weightings[i]
+                ));
             }
         }
 
-        constraints.add(
-                nums.equal(
-                        bidFormula,
-                        util
-                )
-        );
+        bidUtilities[bidIndex] = nums.makeVariable("bid-" + bidIndex);
+        constraints.add(nums.equal(nums.sum(utilSum), bidUtilities[bidIndex]));
     }
 
     private void bidOrderConstraint(NumeralFormula.RationalFormula[] bids, double lowUtil, double highUtil) {
         constraints.add(
-            nums.equal(bids[0], nums.makeNumber(lowUtil))
+                nums.equal(bids[0], nums.makeNumber(lowUtil))
         );
 
         for (int i = 0; i < bids.length - 1; i++) {
             constraints.add(
-                nums.lessOrEquals(bids[i], bids[i + 1])
-            );
-            constraints.add(
-                nums.lessOrEquals(bids[i], nums.makeNumber(1.0))
+                    nums.lessOrEquals(bids[i], bids[i + 1])
             );
         }
 
         constraints.add(
-            nums.equal(bids[bids.length - 1], nums.makeNumber(highUtil))
+                nums.equal(bids[bids.length - 1], nums.makeNumber(highUtil))
         );
     }
 
@@ -185,10 +184,7 @@ public class Z3Solver {
         constraints.add(nums.equal(weightSum, nums.makeNumber(1.0)));
     }
 
-    private void isBetweenOneZero(NumeralFormula.RationalFormula val, boolean includeZero, boolean includeOne) {
-        final NumeralFormula.RationalFormula ONE = nums.makeNumber(1.0);
-        final NumeralFormula.RationalFormula ZERO = nums.makeNumber(0.0);
-
+    private void isBetweenOneZero(NumeralFormula val, boolean includeZero, boolean includeOne) {
         constraints.add(
                 (includeOne) ? nums.lessOrEquals(val, ONE) : nums.lessThan(val, ONE)
         );
@@ -204,15 +200,15 @@ public class Z3Solver {
         for (int i = 0; i < issue.getNumberOfValues(); i++) {
             discreteIssueValues[issueIndex][i] = nums.makeVariable("issue-" + issueIndex + "-" + i);
             constraints.add(nums.greaterThan(
-                    discreteIssueValues[issueIndex][i], nums.makeNumber(0.0)
+                    discreteIssueValues[issueIndex][i], ZERO
             ));
-//            isBetweenOneZero(discreteIssueValues[issueIndex][i], false, false);
+//            isBetweenOneZero(discreteIssueValues[issueIndex][i], false, true);
         }
     }
 
     private void addIssueValues(IssueInteger issue, int issueIndex) {
-        intIssueBounds[issueIndex][0] = nums.makeNumber(Double.valueOf(issue.getLowerBound()));
-        intIssueBounds[issueIndex][1] = nums.makeNumber(Double.valueOf(issue.getUpperBound()));
+        NumeralFormula lower = nums.makeNumber(Double.valueOf(issue.getLowerBound()));
+        NumeralFormula upper = nums.makeNumber(Double.valueOf(issue.getUpperBound()));
 
         intIssueUtilities[issueIndex][0] = nums.makeVariable("issue-" + issueIndex + "-minutil");
         isBetweenOneZero(intIssueUtilities[issueIndex][0], true, false);
@@ -238,7 +234,7 @@ public class Z3Solver {
             context.close();
             prover.close();
             shutdown.requestShutdown("End of Use");
-        } catch(Error | Exception e) {
+        } catch (Error | Exception e) {
             System.err.println("An error occured while closing Z3");
             System.err.println(e);
         }
